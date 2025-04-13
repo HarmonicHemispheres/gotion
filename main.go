@@ -6,11 +6,21 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strings"
+	"strings" // Added for date parsing
+	"time"
 
 	"github.com/jomei/notionapi"
 	"github.com/spf13/cobra"
 )
+
+// parseDate checks if the date string contains a "T". If so, it uses RFC3339 parsing;
+// otherwise, it expects a date-only format.
+func parseDate(dateStr string) (time.Time, error) {
+	if strings.Contains(dateStr, "T") {
+		return time.Parse(time.RFC3339, dateStr)
+	}
+	return time.Parse("2006-01-02", dateStr)
+}
 
 // RawPageData represents the raw JSON data before converting to Notion API format
 type RawPageData map[string]interface{}
@@ -40,8 +50,8 @@ Example: gotion inspect --db "f1a2b3c4-d5e6-7f8a-9b0c-1d2e3f4a5b6c"`,
 		Run: func(cmd *cobra.Command, args []string) {
 			dbID, _ := cmd.Flags().GetString("db")
 			apiKeyFlag, _ := cmd.Flags().GetString("api-key")
-			
-			// --- Input Validation --- 
+
+			// --- Input Validation ---
 			if dbID == "" {
 				fmt.Println("Error: Database ID (--db) is required.")
 				os.Exit(1)
@@ -56,7 +66,7 @@ Example: gotion inspect --db "f1a2b3c4-d5e6-7f8a-9b0c-1d2e3f4a5b6c"`,
 				os.Exit(1)
 			}
 
-			// --- Get API Key --- 
+			// --- Get API Key ---
 			apiKey := apiKeyFlag
 			if apiKey == "" {
 				apiKey = os.Getenv("NOTION_API_KEY")
@@ -67,7 +77,7 @@ Example: gotion inspect --db "f1a2b3c4-d5e6-7f8a-9b0c-1d2e3f4a5b6c"`,
 				os.Exit(1)
 			}
 
-			// --- Initialize Notion Client --- 
+			// --- Initialize Notion Client ---
 			client := notionapi.NewClient(notionapi.Token(apiKey))
 			ctx := context.Background()
 
@@ -76,7 +86,7 @@ Example: gotion inspect --db "f1a2b3c4-d5e6-7f8a-9b0c-1d2e3f4a5b6c"`,
 			database, err := client.Database.Get(ctx, notionapi.DatabaseID(dbID))
 			if err != nil {
 				fmt.Printf("Error accessing database: %v\n", err)
-				
+
 				if strings.Contains(err.Error(), "Could not find database") {
 					fmt.Println("\nPermission Error: Your integration doesn't have access to this database.")
 					fmt.Println("To fix this:")
@@ -86,7 +96,7 @@ Example: gotion inspect --db "f1a2b3c4-d5e6-7f8a-9b0c-1d2e3f4a5b6c"`,
 					fmt.Println("4. Find and select your integration name")
 					fmt.Println("\nAlso verify that your Database ID is correct.")
 				}
-				
+
 				os.Exit(1)
 			}
 
@@ -94,22 +104,22 @@ Example: gotion inspect --db "f1a2b3c4-d5e6-7f8a-9b0c-1d2e3f4a5b6c"`,
 			fmt.Printf("\nDatabase Title: %s\n", getTitle(database.Title))
 			fmt.Printf("\nProperties (columns) available:\n")
 			fmt.Println("-----------------------------")
-			
+
 			for name, property := range database.Properties {
 				fmt.Printf("%s (Type: %s)\n", name, getPropertyTypeString(property))
 			}
-			
+
 			fmt.Println("\nWhen creating your JSON data file, make sure property names exactly match these column names.")
 			fmt.Println("Example for this database:")
 			fmt.Println("```")
 			fmt.Println(`{
   "properties": {`)
-			
+
 			// Generate a sample property JSON for each property type
 			for name, property := range database.Properties {
 				fmt.Printf("    \"%s\": %s,\n", name, getSamplePropertyJSON(property))
 			}
-			
+
 			fmt.Println(`  }
 }`)
 			fmt.Println("```")
@@ -142,7 +152,7 @@ You can use the database ID with or without dashes. The tool will format it corr
 			apiKeyFlag, _ := cmd.Flags().GetString("api-key")
 			debugMode, _ := cmd.Flags().GetBool("debug")
 
-			// --- Input Validation --- 
+			// --- Input Validation ---
 			if dbID == "" || dataFile == "" {
 				fmt.Println("Error: Both --db (Database ID) and --data (JSON file path) flags are required.")
 				os.Exit(1)
@@ -157,7 +167,7 @@ You can use the database ID with or without dashes. The tool will format it corr
 				os.Exit(1)
 			}
 
-			// --- Get API Key --- 
+			// --- Get API Key ---
 			apiKey := apiKeyFlag
 			if apiKey == "" {
 				apiKey = os.Getenv("NOTION_API_KEY")
@@ -168,11 +178,11 @@ You can use the database ID with or without dashes. The tool will format it corr
 				os.Exit(1)
 			}
 
-			// --- Initialize Notion Client --- 
+			// --- Initialize Notion Client ---
 			client := notionapi.NewClient(notionapi.Token(apiKey))
 			ctx := context.Background()
 
-			// --- Read Data File --- 
+			// --- Read Data File ---
 			fmt.Printf("Reading data from %s...\n", dataFile)
 			content, err := os.ReadFile(dataFile)
 			if err != nil {
@@ -185,7 +195,7 @@ You can use the database ID with or without dashes. The tool will format it corr
 				fmt.Println(string(content))
 			}
 
-			// --- Parse Raw JSON Data First --- 
+			// --- Parse Raw JSON Data First ---
 			var rawData []RawPageData
 			err = json.Unmarshal(content, &rawData)
 			if err != nil {
@@ -202,7 +212,7 @@ You can use the database ID with or without dashes. The tool will format it corr
 
 			fmt.Printf("Found %d record(s) to insert into database %s.\n", len(rawData), dbID)
 
-			// --- Convert Raw Data to Notion API Format --- 
+			// --- Convert Raw Data to Notion API Format ---
 			pagesData := make([]PageData, 0, len(rawData))
 
 			// Fetch database schema
@@ -214,24 +224,24 @@ You can use the database ID with or without dashes. The tool will format it corr
 
 			for i, raw := range rawData {
 				if debugMode {
-					fmt.Printf("Processing record %d...\n", i + 1)
+					fmt.Printf("Processing record %d...\n", i+1)
 				}
 
 				// Convert raw data to Notion properties
 				pageData, err := convertToNotionProperties(raw, *database)
 				if err != nil {
-					fmt.Printf("Error converting record %d: %v\n", i + 1, err)
+					fmt.Printf("Error converting record %d: %v\n", i+1, err)
 					continue
 				}
 
 				pagesData = append(pagesData, pageData)
 			}
 
-			// --- Insert Data into Notion --- 
+			// --- Insert Data into Notion ---
 			successCount := 0
 			for i, pageData := range pagesData {
-				fmt.Printf("Inserting record %d... ", i + 1)
-				
+				fmt.Printf("Inserting record %d... ", i+1)
+
 				// Validate property names against database schema if debug mode is on
 				if debugMode {
 					// First check if we can fetch the database schema
@@ -250,7 +260,7 @@ You can use the database ID with or without dashes. The tool will format it corr
 						}
 					}
 				}
-				
+
 				request := &notionapi.PageCreateRequest{
 					Parent: notionapi.Parent{
 						DatabaseID: notionapi.DatabaseID(dbID),
@@ -266,7 +276,7 @@ You can use the database ID with or without dashes. The tool will format it corr
 				response, err := client.Page.Create(ctx, request)
 				if err != nil {
 					fmt.Printf("Failed: %v\n", err)
-					
+
 					// Check for common permission errors
 					if strings.Contains(err.Error(), "Could not find database") {
 						fmt.Println("\nPermission Error: Your integration doesn't have access to this database.")
@@ -276,7 +286,7 @@ You can use the database ID with or without dashes. The tool will format it corr
 						fmt.Println("3. Select \"Add connections\"")
 						fmt.Println("4. Find and select your integration name")
 						fmt.Println("\nAlso verify that your Database ID is correct.")
-						
+
 						// Only show this detailed help for the first error
 						if i == 0 {
 							fmt.Println("\nFor more help, visit: https://developers.notion.com/docs/getting-started")
@@ -285,14 +295,14 @@ You can use the database ID with or without dashes. The tool will format it corr
 				} else {
 					fmt.Println("Success!")
 					successCount++
-					
+
 					// Print URL of created page if available
 					if response.URL != "" {
 						fmt.Printf("Page URL: %s\n", response.URL)
 					}
 				}
 			}
-			
+
 			if successCount > 0 {
 				fmt.Printf("\nFinished inserting. %d/%d records inserted successfully.\n", successCount, len(pagesData))
 				fmt.Println("\nTIP: If your data isn't visible in Notion:")
@@ -317,7 +327,7 @@ You can use the database ID with or without dashes. The tool will format it corr
 	inspectCmd.Flags().String("db", "", "ID of the Notion database")
 	inspectCmd.Flags().String("api-key", "", "Notion API Key (optional, overrides NOTION_API_KEY env var)")
 	inspectCmd.MarkFlagRequired("db")
-	
+
 	// Add commands to root
 	rootCmd.AddCommand(inspectCmd)
 	rootCmd.AddCommand(insertCmd)
@@ -338,7 +348,7 @@ func cleanDatabaseID(input string) string {
 	if strings.Contains(input, "-") {
 		return input
 	}
-	
+
 	// Check if it's a 32-character hex string without dashes
 	r := regexp.MustCompile("^[a-fA-F0-9]{32}$")
 	if r.MatchString(input) {
@@ -350,7 +360,7 @@ func cleanDatabaseID(input string) string {
 			input[16:20],
 			input[20:32])
 	}
-	
+
 	// Extract ID from URL if it appears to be a Notion URL
 	if strings.Contains(input, "notion.so") {
 		parts := strings.Split(input, "/")
@@ -361,70 +371,186 @@ func cleanDatabaseID(input string) string {
 			return cleanDatabaseID(lastPart)
 		}
 	}
-	
+
 	// Return as is if we can't determine a better format
 	return input
 }
 
 // Dynamically handle all property types based on the database schema
 func convertToNotionProperties(raw RawPageData, schema notionapi.Database) (PageData, error) {
-    var result PageData
-    result.Properties = make(notionapi.Properties)
+	var result PageData
+	result.Properties = make(notionapi.Properties)
 
-    // Check if raw has a "properties" key
-    if props, ok := raw["properties"].(map[string]interface{}); ok {
-        for propName, propValue := range props {
-            schemaProp, exists := schema.Properties[propName]
-            if !exists {
-                continue // Skip properties not in the database schema
-            }
-            var notionProp notionapi.Property
-            switch schemaProp.GetType() {
-            case notionapi.PropertyConfigTypeTitle:
-                // If needed, you can pass the value as-is or transform further
-                if strValue, ok := propValue.(string); ok {
-                    notionProp = &notionapi.TitleProperty{
-                        Title: []notionapi.RichText{
-                            {
-                                Text: &notionapi.Text{
-                                    Content: strValue,
-                                },
-                            },
-                        },
-                    }
-                }
-            case notionapi.PropertyConfigTypeRichText:
-                if strValue, ok := propValue.(string); ok {
-                    notionProp = &notionapi.RichTextProperty{
-                        RichText: []notionapi.RichText{
-                            {
-                                Text: &notionapi.Text{
-                                    Content: strValue,
-                                },
-                            },
-                        },
-                    }
-                }
-            case notionapi.PropertyConfigTypeNumber:
-                if numValue, ok := propValue.(float64); ok {
-                    notionProp = &notionapi.NumberProperty{
-                        Number: numValue,
-                    }
-                }
-            default:
-                continue // Skip unsupported property types
-            }
-            
-            if notionProp != nil {
-                result.Properties[propName] = notionProp
-            }
-        }
-    } else {
-        // Optionally handle the case where raw is not structured with a "properties" key.
-        return result, fmt.Errorf("expected key 'properties' in data, got none")
-    }
-    
-    return result, nil
+	// Check if raw has a "properties" key
+	if props, ok := raw["properties"].(map[string]interface{}); ok {
+		for propName, propValue := range props {
+			schemaProp, exists := schema.Properties[propName]
+			if !exists {
+				// Skip properties not in the database schema
+				continue
+			}
+			var notionProp notionapi.Property
+			switch schemaProp.GetType() {
+			case notionapi.PropertyConfigTypeTitle:
+				if strValue, ok := propValue.(string); ok {
+					notionProp = &notionapi.TitleProperty{
+						Title: []notionapi.RichText{
+							{
+								Text: &notionapi.Text{
+									Content: strValue,
+								},
+							},
+						},
+					}
+				}
+			case notionapi.PropertyConfigTypeRichText:
+				if strValue, ok := propValue.(string); ok {
+					notionProp = &notionapi.RichTextProperty{
+						RichText: []notionapi.RichText{
+							{
+								Text: &notionapi.Text{
+									Content: strValue,
+								},
+							},
+						},
+					}
+				}
+			case notionapi.PropertyConfigTypeNumber:
+				// Note: JSON numbers are decoded as float64 by default
+				if numValue, ok := propValue.(float64); ok {
+					notionProp = &notionapi.NumberProperty{
+						Number: numValue,
+					}
+				}
+			case notionapi.PropertyConfigTypeURL:
+				if strValue, ok := propValue.(string); ok {
+					notionProp = &notionapi.URLProperty{
+						URL: strValue,
+					}
+				}
+			case notionapi.PropertyConfigTypeSelect:
+				if strValue, ok := propValue.(string); ok {
+					notionProp = &notionapi.SelectProperty{
+						Select: notionapi.Option{
+							Name: strValue,
+						},
+					}
+				}
+			case notionapi.PropertyConfigTypeDate:
+				// Expect the JSON for a Date property to be structured like:
+				// "DateTest": { "date": { "start": "2024-10-01", "end": null } }
+				if propMap, ok := propValue.(map[string]interface{}); ok {
+					// Unwrap the nested "date" object if present.
+					if inner, exists := propMap["date"]; exists {
+						if innerMap, ok2 := inner.(map[string]interface{}); ok2 {
+							propMap = innerMap
+						}
+					}
+					if startStr, ok := propMap["start"].(string); ok {
+						parsedStart, err := parseDate(startStr)
+						if err != nil {
+							return result, fmt.Errorf("invalid start date format for property '%s': %v", propName, err)
+						}
+						// Convert parsed time.Time into notionapi.Date.
+						startDate := notionapi.Date(parsedStart)
+						var endDate *notionapi.Date
+						if endVal, exists := propMap["end"]; exists && endVal != nil {
+							if endStr, ok := endVal.(string); ok && endStr != "" {
+								parsedEnd, err := parseDate(endStr)
+								if err != nil {
+									return result, fmt.Errorf("invalid end date format for property '%s': %v", propName, err)
+								}
+								e := notionapi.Date(parsedEnd)
+								endDate = &e
+							}
+						}
+						notionProp = &notionapi.DateProperty{
+							Date: &notionapi.DateObject{
+								Start: &startDate,
+								End:   endDate,
+							},
+						}
+					}
+				}
+
+			// Checkbox
+			case notionapi.PropertyConfigTypeCheckbox:
+				if boolVal, ok := propValue.(bool); ok {
+					notionProp = &notionapi.CheckboxProperty{
+						Checkbox: boolVal,
+					}
+				}
+
+			// Multi-Select
+			case notionapi.PropertyConfigTypeMultiSelect:
+				// Accept either an array of strings or a comma-separated string.
+				if arr, ok := propValue.([]interface{}); ok {
+					var options []notionapi.Option
+					for _, opt := range arr {
+						if optStr, ok := opt.(string); ok {
+							options = append(options, notionapi.Option{Name: optStr})
+						}
+					}
+					notionProp = &notionapi.MultiSelectProperty{
+						MultiSelect: options,
+					}
+				} else if strVal, ok := propValue.(string); ok {
+					splits := strings.Split(strVal, ",")
+					var options []notionapi.Option
+					for _, s := range splits {
+						optionName := strings.TrimSpace(s)
+						if optionName != "" {
+							options = append(options, notionapi.Option{Name: optionName})
+						}
+					}
+					notionProp = &notionapi.MultiSelectProperty{
+						MultiSelect: options,
+					}
+				}
+
+			// Email
+			case notionapi.PropertyConfigTypeEmail:
+				if strVal, ok := propValue.(string); ok {
+					notionProp = &notionapi.EmailProperty{
+						Email: strVal,
+					}
+				}
+
+			// Phone Number
+			case notionapi.PropertyConfigTypePhoneNumber:
+				if strVal, ok := propValue.(string); ok {
+					notionProp = &notionapi.PhoneNumberProperty{
+						PhoneNumber: strVal,
+					}
+				}
+
+			// Status
+			// case notionapi.PropertyConfigTypeStatus:
+			// 	// For Status, the structure is similar to Select. The only difference is the JSON key is "status".
+			// 	if strVal, ok := propValue.(string); ok {
+			// 		notionProp = &notionapi.StatusProperty{
+			// 			Status: &notionapi.Option{
+			// 				Name: strVal,
+			// 			},
+			// 		}
+			// 	}
+
+			// Add additional cases for other property types as needed.
+			default:
+				// Skip unsupported property types or add your conversion logic here.
+				continue
+			}
+
+			if notionProp != nil {
+				result.Properties[propName] = notionProp
+			}
+		}
+	} else {
+		// Handle the case where raw data does not contain a "properties" key.
+		return result, fmt.Errorf("expected key 'properties' in data, got none")
+	}
+
+	return result, nil
 }
 
 // Helper functions for database inspection
@@ -432,14 +558,14 @@ func getTitle(titleArray []notionapi.RichText) string {
 	if len(titleArray) == 0 {
 		return "Untitled"
 	}
-	
+
 	var title string
 	for _, text := range titleArray {
 		if text.Text != nil {
 			title += text.Text.Content
 		}
 	}
-	
+
 	return title
 }
 
