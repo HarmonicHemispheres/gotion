@@ -1,7 +1,19 @@
 ![](gotion_banner.png)
 
-<center>
+<!-- Shield Icons -->
+<p align="center">
+  <a href="https://github.com/HarmonicHemispheres/gotion">
+    <img src="https://img.shields.io/github/repo-size/HarmonicHemispheres/gotion.svg" alt="Repository Size" />
+  </a>
+  <a href="https://github.com/HarmonicHemispheres/gotion/commits/main">
+    <img src="https://img.shields.io/github/last-commit/HarmonicHemispheres/gotion.svg" alt="Last Commit" />
+  </a>
+  <br>
+  <i>
 a cli tool for uploading json and csv records to notion databases 
+  </i>
+</p>
+<center>
 </center>
 
 
