@@ -2,12 +2,16 @@
 
 <!-- Shield Icons -->
 <p align="center">
-  <a href="https://github.com/HarmonicHemispheres/gotion">
-    <img src="https://img.shields.io/github/repo-size/HarmonicHemispheres/gotion.svg" alt="Repository Size" />
-  </a>
-  <a href="https://github.com/HarmonicHemispheres/gotion/commits/main">
-    <img src="https://img.shields.io/github/last-commit/HarmonicHemispheres/gotion.svg" alt="Last Commit" />
-  </a>
+    <a href="https://github.com/HarmonicHemispheres/gotion">
+        <img src="https://img.shields.io/github/repo-size/HarmonicHemispheres/gotion.svg" alt="Repository Size" />
+    </a>
+    <a href="https://github.com/HarmonicHemispheres/gotion/commits/main">
+        <img src="https://img.shields.io/github/last-commit/HarmonicHemispheres/gotion.svg" alt="Last Commit" />
+    </a>
+    <img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/HarmonicHemispheres/gotion/total">
+    <img alt="GitHub go.mod Go version" src="https://img.shields.io/github/go-mod/go-version/HarmonicHemispheres/gotion">
+
+
   <br>
   <i>
 a cli tool for uploading json and csv records to notion databases  
@@ -65,6 +69,41 @@ gotion insert --db "your-database-id" --data "data.json" --api-key "your-api-key
 
 ![alt text](demo_1.png)
 
+
+<br>
+<br>
+
+# CLI Commands
+
+### `gotion inspect`
+
+Inspect a Notion database to see its structure, including property names and types. This is useful for ensuring your JSON data matches the database schema.
+
+```
+gotion inspect --db "your-database-id" --api-key "your-api-key"
+```
+
+### `gotion insert`
+
+Insert data from a JSON file into a specified Notion database.
+
+```
+gotion insert --db "your-database-id" --data "path/to/your/data.json" --api-key "your-api-key"
+```
+
+**Flags:**
+*   `--db`: (Required) The ID of the Notion database.
+*   `--data`: (Required) The path to the JSON file containing the data to insert.
+*   `--api-key`: (Optional) Your Notion API key. If not provided, it will check for the `NOTION_API_KEY` environment variable.
+*   `--debug`: (Optional) Enable debug mode for more verbose output, including the request payload sent to Notion.
+
+### `gotion version`
+
+Prints the current version of the gotion CLI tool.
+
+```
+gotion version
+```
 
 <br>
 <br>
