@@ -13,6 +13,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// version is set at build time using ldflags.
+// Default value is "dev" if not overridden.
+var version = "dev"
+
 // parseDate checks if the date string contains a "T". If so, it uses RFC3339 parsing;
 // otherwise, it expects a date-only format.
 func parseDate(dateStr string) (time.Time, error) {
@@ -38,6 +42,16 @@ func main() {
 Database IDs should be in UUID format like: "f1a2b3c4-d5e6-7f8a-9b0c-1d2e3f4a5b6c"
 These can be found in the Notion URL when viewing a database.`,
 	}
+
+	// Add the version subcommand.
+	var versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Print the gotion version",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("gotion version %s\n", version)
+		},
+	}
+	rootCmd.AddCommand(versionCmd)
 
 	// Add inspect command to show database schema
 	var inspectCmd = &cobra.Command{
