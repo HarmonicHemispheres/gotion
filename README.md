@@ -10,7 +10,7 @@
   </a>
   <br>
   <i>
-a cli tool for uploading json and csv records to notion databases 
+a cli tool for uploading json and csv records to notion databases  
   </i>
 </p>
 <center>
